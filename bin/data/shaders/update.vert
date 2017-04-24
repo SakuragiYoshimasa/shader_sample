@@ -1,9 +1,13 @@
-varying vec2 vTexCoord;
+#extension GL_ARB_texture_rectangle : enable 
+#extension GL_EXT_gpu_shader4 : enable
+
 uniform sampler2DRect posTex;
+uniform float u_time;
+varying vec2 vTexCoord;
+varying vec4 pos;
 
 void main() {
-    vTexCoord =  gl_Vertex.xy;
-    //vTexCoord.x = vTexCoord.x * 2048.0;
-    //vTexCoord.y = vTexCoord.y * 1.0;
+    vTexCoord = gl_Vertex.xy;
+    pos = vec4(texture2DRect(posTex, vTexCoord).rgb, 1.0); // texcoord 0-2047
     gl_Position = ftransform();
 }
