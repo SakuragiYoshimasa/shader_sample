@@ -2,59 +2,76 @@
 
 void ofApp::setup(){
     
+    //Settings
     ofEnableDepthTest();
     ofSetVerticalSync(false);
     ofBackground(0);
+    cam.setDistance(200);
     
-    
+    //Loading Shader
     shader.load("shaders/update.vert","shaders/update.frag");
     surface_shader.load("shaders/surface.vert", "shaders/surface.frag");
     
+    //Init particle positon(=>surface.vert::gl_Vertex.xy)
+    //Set postion only here
+    //because I need texcoord like these...
+    //xy = (0, 0.5), (1, 0.5), (2, 0.5), ... (particleNum - 2, 0.5), (particleNum - 1, 0.5)
     particle.setMode(OF_PRIMITIVE_POINTS);
     for (int i = 0; i < particleNum; i++){
         particle.addVertex(ofVec3f((float)i ,0.5,0));
     }
+    
+    //No comment
     init_fbo();
-    cam.setDistance(200);
 }
 
 
 void ofApp::update(){
 
+    //Draw To FBO 'dist'
     dist->begin();
     dist->activateAllDrawBuffers();
     
     ofClear(0);
-    
+    //Use update_shader
+    //posTex = source
+    //update.vert : pass a particle position(to draw) and texcoord extracted from source
+    //update.frag : calc a previous frame position to new position
     shader.begin();
     shader.setUniform1f("u_time", ofGetElapsedTimef());
     shader.setUniformTexture("posTex", source->getTexture(), 0);
     source->draw(0, 0);
     shader.end();
-    
+    //'dist' has colors representing particle positions;
     dist->end();
+    
+    //Swap to 'dist' is used to only distination, 'source' only parameter
     swap();
 }
 
 void ofApp::draw(){
-    
+    //Rendering
     renderFbo.begin();
     
+    //Settings
     ofClear(0);
     ofEnableBlendMode(OF_BLENDMODE_ADD);
     ofEnablePointSprites();
     glPointSize(1.0);
     ofSetColor(255, 255, 255);
     
-    //cam.begin();
     
-    surface_shader.setUniformTexture("posTex", dist->getTexture(), 0);
+    //dipict particle using surface_shader
+    //posTex = source(=drawed at update to (copy of dist))
+    //surface.vert : pass a particle position and texcoord extracted from source
+    //               and put that position * MVP mat into gl_position
+    //surface.frag : set particle color
+    surface_shader.setUniformTexture("posTex", source->getTexture(), 0);
     surface_shader.begin();
     particle.draw();
     surface_shader.end();
     
-    //cam.end();
-    
+
     renderFbo.end();
     renderFbo.draw(0,0);
 }
